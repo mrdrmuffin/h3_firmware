@@ -1,0 +1,223 @@
+C51 COMPILER V9.53.0.0   DESCRIPTORS                                                       01/31/2016 21:52:17 PAGE 1   
+
+
+C51 COMPILER V9.53.0.0, COMPILATION OF MODULE DESCRIPTORS
+OBJECT MODULE PLACED IN .\src\descriptors.OBJ
+COMPILER INVOKED BY: f:\SiliconLabs\SimplicityStudio\v3\developer\toolchains\keil_8051\9.53\BIN\C51.exe F:\Projects\H3_F
+                    -irmware\src\descriptors.c OMF2 SMALL DEBUG OBJECTEXTEND ROM(LARGE) WARNINGLEVEL(2) FLOATFUZZY(3) OPTIMIZE(8,SPEED) DEFIN
+                    -E(DEBUG=1) INTVECTOR(0X0000) INTPROMOTE INCDIR(F:\Projects\H3_Firmware\inc;F:\Projects\H3_Firmware\inc\config;F:/Silicon
+                    -Labs/SimplicityStudio/v3/developer/sdks/si8051/v3//Device/C8051F326/peripheral_driver/inc;F:/SiliconLabs/SimplicityStudi
+                    -o/v3/developer/sdks/si8051/v3//Lib/efm8_usb/inc;F:/SiliconLabs/SimplicityStudio/v3/developer/sdks/si8051/v3//Lib/efm8_as
+                    -sert;F:/SiliconLabs/SimplicityStudio/v3/developer/sdks/si8051/v3//Device/shared/si8051Base;F:/SiliconLabs/SimplicityStud
+                    -io/v3/developer/sdks/si8051/v3//Device/C8051F326;F:/SiliconLabs/SimplicityStudio/v3/developer/sdks/si8051/v3//Device/C80
+                    -51F326/inc) PRINT(.\src\descriptors.lst) COND PAGEWIDTH(120) PAGELENGTH(65) OBJECT(.\src\descriptors.OBJ)
+
+line level    source
+
+   1          /**************************************************************************//**
+   2           * Copyright (c) 2015 by Silicon Laboratories Inc. All rights reserved.
+   3           *
+   4           * http://developer.silabs.com/legal/version/v11/Silicon_Labs_Software_License_Agreement.txt
+   5           *****************************************************************************/
+   6          
+   7          //-----------------------------------------------------------------------------
+   8          // Includes
+   9          //-----------------------------------------------------------------------------
+  10          #include <si_toolchain.h>
+  11          #include <endian.h>
+  12          #include <stdlib.h>
+  13          #include <string.h>
+  14          #include <efm8_usb.h>
+  15          #include "descriptors.h"
+  16          
+  17          
+  18          #ifdef __cplusplus
+              extern "C" {
+              #endif
+  21          
+  22          
+  23          
+  24          // HID Report Descriptor for Interface 0
+  25          SI_SEGMENT_VARIABLE(ReportDescriptor0[69],
+  27                              const uint8_t,
+  27                              SI_SEG_CODE) =
+  28          {
+  29          
+  30            0x05, 0x01,                      // USAGE_PAGE (Generic Desktop)
+  31            0x09, 0x06,                      // USAGE (Keyboard)
+  32            0xa1, 0x01,                      // COLLECTION (Application)
+  33            0x05, 0x07,                      // USAGE_PAGE (Keyboard)
+  34            0x19, 0xe0,                      // USAGE_MINIMUM (Keyboard LeftControl)
+  35            0x29, 0xe7,                      // USAGE_MAXIMUM (Keyboard Right GUI)
+  36            0x15, 0x00,                      // LOGICAL_MINIMUM (0)
+  37            0x25, 0x01,                      // LOGICAL_MAXIMUM (1)
+  38            0x75, 0x01,                      // REPORT_SIZE (1)
+  39            0x95, 0x08,                      // REPORT_COUNT (8)
+  40            0x81, 0x02,                      // INPUT (Data,Var,Abs)
+  41            0x15, 0x00,                      // LOGICAL_MINIMUM (0)
+  42            0x25, 0x01,                      // LOGICAL_MAXIMUM (1)
+  43            0x75, 0x01,                      // REPORT_SIZE (1)
+  44            0x95, 0x08,                      // REPORT_COUNT (8)
+  45            0x81, 0x01,                      // INPUT (Cnst,Ary,Abs)
+  46            0x19, 0x00,                      // USAGE_MINIMUM (Reserved (no event indicated))
+  47            0x29, 0x65,                      // USAGE_MAXIMUM (Keyboard Application)
+  48            0x15, 0x00,                      // LOGICAL_MINIMUM (0)
+  49            0x25, 0x65,                      // LOGICAL_MAXIMUM (101)
+C51 COMPILER V9.53.0.0   DESCRIPTORS                                                       01/31/2016 21:52:17 PAGE 2   
+
+  50            0x75, 0x08,                      // REPORT_SIZE (8)
+  51            0x95, 0x06,                      // REPORT_COUNT (6)
+  52            0x81, 0x00,                      // INPUT (Data,Ary,Abs)
+  53            0x05, 0x08,                      // USAGE_PAGE (LEDs)
+  54            0x19, 0x01,                      // USAGE_MINIMUM (Num Lock)
+  55            0x29, 0x03,                      // USAGE_MAXIMUM (Scroll Lock)
+  56            0x15, 0x00,                      // LOGICAL_MINIMUM (0)
+  57            0x25, 0x01,                      // LOGICAL_MAXIMUM (1)
+  58            0x75, 0x01,                      // REPORT_SIZE (1)
+  59            0x95, 0x03,                      // REPORT_COUNT (3)
+  60            0x91, 0x02,                      // OUTPUT (Data,Var,Abs)
+  61            0x75, 0x01,                      // REPORT_SIZE (1)
+  62            0x95, 0x05,                      // REPORT_COUNT (5)
+  63            0x91, 0x01,                      // OUTPUT (Cnst,Ary,Abs)
+  64            0xc0                             // END_COLLECTION
+  65          
+  66          };
+  67          
+  68          SI_SEGMENT_VARIABLE(deviceDesc[],
+  70                              const USB_DeviceDescriptor_TypeDef,
+  70                              SI_SEG_CODE) = 
+  71          {
+  72                  USB_DEVICE_DESCSIZE,             // bLength
+  73                  USB_DEVICE_DESCRIPTOR,           // bLength
+  74                  htole16(0x0200),                 // bcdUSB
+  75                  0,                               // bDeviceClass
+  76                  0,                               // bDeviceSubClass
+  77                  0,                               // bDeviceProtocol
+  78                  64,                              // bMaxPacketSize
+  79                  USB_VENDOR_ID,                   // idVendor
+  80                  USB_PRODUCT_ID,                  // idProduct
+  81                  htole16(0x0100),                 // bcdDevice
+  82                  1,                               // iManufacturer
+  83                  2,                               // iProduct
+  84                  3,                               // iSerialNumber
+  85                  1,                               // bNumConfigurations
+  86          };
+  87          
+  88          SI_SEGMENT_VARIABLE(configDesc[],
+  90                              const uint8_t,
+  90                              SI_SEG_CODE) =
+  91          {
+  92                  USB_CONFIG_DESCSIZE,             // bLength
+  93                  USB_CONFIG_DESCRIPTOR,           // bLength
+  94                  0x22,                            // wTotalLength(LSB)
+  95                  0x00,                            // wTotalLength(MSB)
+  96                  1,                               // bNumInterfaces
+  97                  1,                               // bConfigurationValue
+  98                  4,                               // iConfiguration
+  99          
+ 100                  CONFIG_DESC_BM_RESERVED_D7 |     // bmAttrib: Self powered
+ 101                  CONFIG_DESC_BM_SELFPOWERED,  
+ 102          
+ 103                  CONFIG_DESC_MAXPOWER_mA(100),    // bMaxPower: 100 mA
+ 104          
+ 105                  //Interface 0 Descriptor
+ 106                  USB_INTERFACE_DESCSIZE,          // bLength
+ 107                  USB_INTERFACE_DESCRIPTOR,        // bDescriptorType
+ 108                  0,                               // bInterfaceNumber
+ 109                  0,                               // bAlternateSetting
+ 110                  1,                               // bNumEndpoints
+ 111                  3,                               // bInterfaceClass: HID (Human Interface Device)
+ 112                  0,                               // bInterfaceSubClass
+C51 COMPILER V9.53.0.0   DESCRIPTORS                                                       01/31/2016 21:52:17 PAGE 3   
+
+ 113                  1,                               // bInterfaceProtocol
+ 114                  5,                               // iInterface
+ 115          
+ 116                  //HID Descriptor
+ 117                  USB_HID_DESCSIZE,                // bLength
+ 118                  USB_HID_DESCRIPTOR,              // bLength
+ 119                  0x11,                            // bcdHID (LSB)
+ 120                  0x01,                            // bcdHID (MSB)
+ 121                  0,                               // bCountryCode
+ 122                  1,                               // bNumDescriptors
+ 123                  USB_HID_REPORT_DESCRIPTOR,       // bDescriptorType
+ 124                  sizeof( ReportDescriptor0 ),     // wDescriptorLength(LSB)
+ 125                  sizeof( ReportDescriptor0 )>>8,    // wDescriptorLength(MSB)
+ 126          
+ 127                  //Endpoint 1 IN Descriptor
+ 128                  USB_ENDPOINT_DESCSIZE,           // bLength
+ 129                  USB_ENDPOINT_DESCRIPTOR,         // bDescriptorType
+ 130                  0x81,                            // bEndpointAddress
+ 131                  USB_EPTYPE_INTR,                 // bAttrib
+ 132                  0x40,                            // wMaxPacketSize (LSB)
+ 133                  0x00,                            // wMaxPacketSize (MSB)
+ 134                  24,                              // bInterval
+ 135          };
+ 136          
+ 137          
+ 138          #define LANG_STRING   htole16( SLAB_USB_LANGUAGE )
+ 139          #define MFR_STRING                             "Silicon Laboratories"
+ 140          #define PROD_STRING                            "EFM8 USB HID Keyboard"
+ 141          #define SER_STRING                             "0123456789ABCDEF"
+ 142          #define CFG_STRING                             "Config #1"
+ 143          #define INT0_STRING                            "HID Keyboard"
+ 144          
+ 145          
+ 146          LANGID_STATIC_CONST_STRING_DESC( langDesc[], LANG_STRING );
+ 147          UTF16LE_PACKED_STATIC_CONST_STRING_DESC( mfrDesc[], MFR_STRING );
+ 148          UTF16LE_PACKED_STATIC_CONST_STRING_DESC( prodDesc[], PROD_STRING );
+ 149          UTF16LE_PACKED_STATIC_CONST_STRING_DESC( serDesc[], SER_STRING );
+ 150          UTF16LE_PACKED_STATIC_CONST_STRING_DESC( cfgDesc[], CFG_STRING );
+ 151          UTF16LE_PACKED_STATIC_CONST_STRING_DESC( int0Desc[], INT0_STRING );
+ 152          
+ 153          //-----------------------------------------------------------------------------
+ 154          SI_SEGMENT_POINTER(myUsbStringTable_USEnglish[],
+ 156                             static const USB_StringDescriptor_TypeDef,
+ 156                             const SI_SEG_CODE) =
+ 157          {
+ 158                  langDesc,
+ 159                  mfrDesc,
+ 160                  prodDesc,
+ 161                  serDesc,
+ 162                  cfgDesc,
+ 163                  int0Desc,
+ 164          
+ 165          };
+ 166          
+ 167          //-----------------------------------------------------------------------------
+ 168          SI_SEGMENT_VARIABLE(initstruct,
+ 170                              const USBD_Init_TypeDef,
+ 170                              SI_SEG_CODE) =
+ 171          {
+ 172            deviceDesc,                                         // deviceDescriptor
+ 173            configDesc,                                         // configDescriptor
+ 174            myUsbStringTable_USEnglish,                         // stringDescriptors
+ 175            sizeof(myUsbStringTable_USEnglish) / sizeof(void *) // numberOfStrings
+C51 COMPILER V9.53.0.0   DESCRIPTORS                                                       01/31/2016 21:52:17 PAGE 4   
+
+ 176          };
+ 177          
+ 178          
+ 179          #ifdef __cplusplus
+              }
+              #endif
+ 182          
+ 183          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   ----    ----
+   CONSTANT SIZE    =    251    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+   EDATA SIZE       =   ----    ----
+   HDATA SIZE       =   ----    ----
+   XDATA CONST SIZE =   ----    ----
+   FAR CONST SIZE   =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

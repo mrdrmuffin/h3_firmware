@@ -1,0 +1,150 @@
+C51 COMPILER V9.53.0.0   MAIN                                                              01/31/2016 22:03:15 PAGE 1   
+
+
+C51 COMPILER V9.53.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\src\main.OBJ
+COMPILER INVOKED BY: f:\SiliconLabs\SimplicityStudio\v3\developer\toolchains\keil_8051\9.53\BIN\C51.exe F:\Projects\H3_F
+                    -irmware\src\main.c OMF2 SMALL DEBUG OBJECTEXTEND ROM(LARGE) WARNINGLEVEL(2) FLOATFUZZY(3) OPTIMIZE(8,SPEED) DEFINE(DEBUG
+                    -=1) INTVECTOR(0X0000) INTPROMOTE INCDIR(F:\Projects\H3_Firmware\inc;F:\Projects\H3_Firmware\inc\config;F:/SiliconLabs/Si
+                    -mplicityStudio/v3/developer/sdks/si8051/v3//Device/C8051F326/peripheral_driver/inc;F:/SiliconLabs/SimplicityStudio/v3/de
+                    -veloper/sdks/si8051/v3//Lib/efm8_usb/inc;F:/SiliconLabs/SimplicityStudio/v3/developer/sdks/si8051/v3//Lib/efm8_assert;F:
+                    -/SiliconLabs/SimplicityStudio/v3/developer/sdks/si8051/v3//Device/shared/si8051Base;F:/SiliconLabs/SimplicityStudio/v3/d
+                    -eveloper/sdks/si8051/v3//Device/C8051F326;F:/SiliconLabs/SimplicityStudio/v3/developer/sdks/si8051/v3//Device/C8051F326/
+                    -inc) PRINT(.\src\main.lst) COND PAGEWIDTH(120) PAGELENGTH(65) OBJECT(.\src\main.OBJ)
+
+line level    source
+
+   1          //-----------------------------------------------------------------------------
+   2          // main.c
+   3          //-----------------------------------------------------------------------------
+   4          // Copyright 2015 Silicon Laboratories, Inc.
+   5          // http://developer.silabs.com/legal/version/v11/Silicon_Labs_Software_License_Agreement.txt
+   6          //
+   7          // Program Description:
+   8          //
+   9          // This program enumerates as a USB keyboard. Each time a button is pressed
+  10          // a character is sent to the host. A series of presses will spell out
+  11          // "HID Keyboard ". The status of the Caps Lock and Num Lock on the host will
+  12          // be indicated by the LED's labelled Pw.3 and P2.2 on the C8051F326 Target Board.
+  13          //
+  14          // Resources:
+  15          // SYSCLK - 12 MHz INTOSC * 2
+  16          // USB0   - Full speed
+  17          // P2.0 - push button
+  18          // P2.1 - push button
+  19          // P2.2 - LED
+  20          // P2.3 - LED
+  21          //
+  22          //-----------------------------------------------------------------------------
+  23          // How To Test: C8051F326-TB
+  24          //-----------------------------------------------------------------------------
+  25          // 1) Plug the USB Debug Adapter into the port labelled DEBUG.
+  26          // 2) Power the C8051F326-TB at P1.
+  27          // 3) Attach a USB cable between the target PC and the USB port of the
+  28          //    C8051F326-TB.
+  29          // 4) Compile and download code to the C8051F326 Target Board.
+  30          //    In Simplicity Studio IDE, select Run -> Debug from the menu bar,
+  31          //    click the Debug button in the quick menu, or press F11.
+  32          // 5) Run the code.
+  33          //    In Simplicity Studio IDE, select Run -> Resume from the menu bar,
+  34          //    click the Resume button in the quick menu, or press F8.
+  35          // 6) The HID keyboard example should start.
+  36          // 7) The device should enumerate on the PC as a HID keyboard.
+  37          // 8) Press either push-button (P2.0 or P2.1) to send one character in the
+  38          //    string "HID Keyboard ".
+  39          // 9) Pressing Num Lock or Caps Lock on the host keyboard will toggle LED's
+  40          //    P2.3 and P2.2, respectively.
+  41          //
+  42          // Target:         C8051F326
+  43          // Tool chain:     Generic
+  44          //
+  45          // Release 0.1 (JM)
+  46          //    - Initial Revision
+  47          //    - 13 APR 2015
+  48          //
+  49          #include "SI_C8051F326_Register_Enums.h"
+C51 COMPILER V9.53.0.0   MAIN                                                              01/31/2016 22:03:15 PAGE 2   
+
+  50          #include "efm8_usb.h"
+  51          #include "usb_0.h"
+  52          #include "descriptors.h"
+  53          #include "idle.h"
+  54          
+  55          // ----------------------------------------------------------------------------
+  56          // Function Prototypes
+  57          // ----------------------------------------------------------------------------
+  58          void Init_Device(void);
+  59          
+  60          // ----------------------------------------------------------------------------
+  61          // Variables
+  62          // ----------------------------------------------------------------------------
+  63          uint8_t keySeqNo = 0;        // Current position in report table.
+  64          bool key1Pushed = 0;          // Current pushbutton status.
+  65          bool key2Pushed = 0;          // Current pushbutton status.
+  66          bool key3Pushed = 0;          // Current pushbutton status.
+  67          bool key4Pushed = 0;          // Current pushbutton status.
+  68          bool key0Pushed = 0;          // Current pushbutton status.
+  69          
+  70          // ----------------------------------------------------------------------------
+  71          // main() Routine
+  72          // ---------------------------------------------------------------------------
+  73          //
+  74          // Note: The software watchdog timer is not disabled by default in this
+  75          // example, so a long-running program will reset periodically unless
+  76          // the timer is disabled or your program periodically writes to it.
+  77          //
+  78          // Review the "Watchdog Timer" section under the part family's datasheet
+  79          // for details.
+  80          //
+  81          // ----------------------------------------------------------------------------
+  82          int16_t main(void)
+  83          {
+  84   1        Init_Device();            // Initialize peripherals, clocks, and interrupts
+  85   1        USBD_Init( &initstruct);  // Initialize USB
+  86   1        IE_EA = 1;                // Enable interrupts
+  87   1      
+  88   1        while (1)
+  89   1        {
+  90   2          // Poll the switches on P2.0 and P2.1
+  91   2          if ((P2 & 0x01) == 0)
+  92   2          {
+  93   3            key0Pushed = 1;
+  94   3          }
+  95   2          if ((P2 & 0x02) == 0)
+  96   2          {
+  97   3            key1Pushed = 1;
+  98   3          }
+  99   2          if ((P2 & 0x04) == 0)
+ 100   2              {
+ 101   3                key2Pushed = 1;
+ 102   3              }
+ 103   2          if ((P2 & 0x08) == 0)
+ 104   2              {
+ 105   3                key3Pushed = 1;
+ 106   3              }
+ 107   2          if ((P2 & 0x10) == 0)
+ 108   2              {
+ 109   3                key4Pushed = 1;
+ 110   3              }
+ 111   2        }
+ 112   1      }
+C51 COMPILER V9.53.0.0   MAIN                                                              01/31/2016 22:03:15 PAGE 3   
+
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     51    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      1    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      5    ----
+   EDATA SIZE       =   ----    ----
+   HDATA SIZE       =   ----    ----
+   XDATA CONST SIZE =   ----    ----
+   FAR CONST SIZE   =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

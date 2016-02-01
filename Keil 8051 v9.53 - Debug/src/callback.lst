@@ -1,0 +1,371 @@
+C51 COMPILER V9.53.0.0   CALLBACK                                                          01/31/2016 22:03:14 PAGE 1   
+
+
+C51 COMPILER V9.53.0.0, COMPILATION OF MODULE CALLBACK
+OBJECT MODULE PLACED IN .\src\callback.OBJ
+COMPILER INVOKED BY: f:\SiliconLabs\SimplicityStudio\v3\developer\toolchains\keil_8051\9.53\BIN\C51.exe F:\Projects\H3_F
+                    -irmware\src\callback.c OMF2 SMALL DEBUG OBJECTEXTEND ROM(LARGE) WARNINGLEVEL(2) FLOATFUZZY(3) OPTIMIZE(8,SPEED) DEFINE(D
+                    -EBUG=1) INTVECTOR(0X0000) INTPROMOTE INCDIR(F:\Projects\H3_Firmware\inc;F:\Projects\H3_Firmware\inc\config;F:/SiliconLab
+                    -s/SimplicityStudio/v3/developer/sdks/si8051/v3//Device/C8051F326/peripheral_driver/inc;F:/SiliconLabs/SimplicityStudio/v
+                    -3/developer/sdks/si8051/v3//Lib/efm8_usb/inc;F:/SiliconLabs/SimplicityStudio/v3/developer/sdks/si8051/v3//Lib/efm8_asser
+                    -t;F:/SiliconLabs/SimplicityStudio/v3/developer/sdks/si8051/v3//Device/shared/si8051Base;F:/SiliconLabs/SimplicityStudio/
+                    -v3/developer/sdks/si8051/v3//Device/C8051F326;F:/SiliconLabs/SimplicityStudio/v3/developer/sdks/si8051/v3//Device/C8051F
+                    -326/inc) PRINT(.\src\callback.lst) COND PAGEWIDTH(120) PAGELENGTH(65) OBJECT(.\src\callback.OBJ)
+
+line level    source
+
+   1          /**************************************************************************//**
+   2           * Copyright (c) 2015 by Silicon Laboratories Inc. All rights reserved.
+   3           *
+   4           * http://developer.silabs.com/legal/version/v11/Silicon_Labs_Software_License_Agreement.txt
+   5           *****************************************************************************/
+   6          
+   7          #include "SI_C8051F326_Register_Enums.h"
+   8          #include "efm8_usb.h"
+   9          #include "descriptors.h"
+  10          #include "idle.h"
+  11          
+  12          // ----------------------------------------------------------------------------
+  13          // Constants
+  14          // ----------------------------------------------------------------------------
+  15          //#define numLock     P2_B2
+  16          //#define capsLock    P2_B3
+  17          
+  18          // ----------------------------------------------------------------------------
+  19          // Variables
+  20          // ----------------------------------------------------------------------------
+  21          uint8_t tmpBuffer;
+  22          extern uint8_t keySeqNo;                // Current position in report table.
+  23          extern bool key1Pushed;                  // Current pushbutton status.
+  24          extern bool key2Pushed;                  // Current pushbutton status.
+  25          extern bool key3Pushed;                  // Current pushbutton status.
+  26          extern bool key4Pushed;                  // Current pushbutton status.
+  27          extern bool key0Pushed;                  // Current pushbutton status.
+  28          
+  29          // Empty report
+  30          SI_SEGMENT_VARIABLE(noKeyReport, const KeyReport_TypeDef, SI_SEG_CODE) =
+  31          {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+  32          
+  33          // A sequence of keystroke input reports.
+  34          SI_SEGMENT_VARIABLE(reportTable[], const KeyReport_TypeDef, SI_SEG_CODE) =
+  35          {
+  36            {0x00, 0x00, 0x1E, 0x00, 0x00, 0x00, 0x00, 0x00},    // '1'
+  37            {0x00, 0x00, 0x1F, 0x00, 0x00, 0x00, 0x00, 0x00},    // '2'
+  38            {0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00},    // '3'
+  39            {0x00, 0x00, 0x21, 0x00, 0x00, 0x00, 0x00, 0x00},    // '4'
+  40            {0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00},    // 'q'
+  41            {0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00},    // 'e'
+  42            {0x00, 0x00, 0x1C, 0x00, 0x00, 0x00, 0x00, 0x00},    // 'y'
+  43            {0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00},    // 'b'
+  44            {0x00, 0x00, 0x12, 0x00, 0x00, 0x00, 0x00, 0x00},    // 'o'
+  45            {0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00},    // 'a'
+  46            {0x00, 0x00, 0x15, 0x00, 0x00, 0x00, 0x00, 0x00},    // 'r'
+  47            {0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00},    // 'd'
+  48            {0x00, 0x00, 0x2C, 0x00, 0x00, 0x00, 0x00, 0x00},    // space
+  49          };
+C51 COMPILER V9.53.0.0   CALLBACK                                                          01/31/2016 22:03:14 PAGE 2   
+
+  50          
+  51          // A sequence of keystroke input reports.
+  52          SI_SEGMENT_VARIABLE(keyMap[], const KeyMap_TypeDef, SI_SEG_CODE) =
+  53          {
+  54            {0x02, 0x1E, 0x1F, 0x20, 0x21},    // Shift, 1, 2, 3, 4
+  55            {0x14, 0x02, 0x1E, 0x1F, 0x21},    // Q, Shift, 1, 2, 4
+  56            {0x07, 0x14, 0x1A, 0x08, 0x15},    // D, Q, W, E, R
+  57          };
+  58          
+  59          // ----------------------------------------------------------------------------
+  60          // Functions
+  61          // ----------------------------------------------------------------------------
+  62          void USBD_ResetCb(void)
+  63          {
+  64   1      
+  65   1      }
+  66          
+  67          void USBD_SofCb(uint16_t sofNr)
+  68          {
+  69   1              static bool keyReleased = 0;
+  70   1          int index = 2;
+  71   1          int keyPushed = 0;
+  72   1          int uid = 1;
+  73   1          uint8_t keyReport[8] = { 0x00 };
+  74   1      
+  75   1          UNREFERENCED_ARGUMENT(sofNr);
+  76   1      
+  77   1          idleTimerTick();
+  78   1      
+  79   1          // Check if the device should send a report
+  80   1          if (isIdleTimerExpired() == true)
+  81   1          {
+  82   2              keyPushed = key0Pushed || key1Pushed || key2Pushed || key3Pushed || key4Pushed;
+  83   2      
+  84   2              if (key0Pushed == true)
+  85   2                  {
+  86   3                      uint8_t curkey = keyMap[uid][0];
+  87   3                          key0Pushed = 0;
+  88   3      
+  89   3                          keyReport[curkey == 0x02 ? 0 : index++] = curkey;
+  90   3                  }
+  91   2      
+  92   2                  if(key1Pushed == true)
+  93   2                  {
+  94   3                      uint8_t curkey = keyMap[uid][1];
+  95   3                      key1Pushed = 0;
+  96   3      
+  97   3                      keyReport[curkey == 0x02 ? 0 : index++] = curkey;
+  98   3                  }
+  99   2      
+ 100   2                  if (key2Pushed == true)
+ 101   2                  {
+ 102   3                      uint8_t curkey = keyMap[uid][2];
+ 103   3                      key2Pushed = 0;
+ 104   3      
+ 105   3                      keyReport[curkey == 0x02 ? 0 : index++] = curkey;
+ 106   3                  }
+ 107   2      
+ 108   2                  if (key3Pushed == true)
+ 109   2                  {
+ 110   3                      uint8_t curkey = keyMap[uid][3];
+ 111   3                      key3Pushed = 0;
+ 112   3      
+C51 COMPILER V9.53.0.0   CALLBACK                                                          01/31/2016 22:03:14 PAGE 3   
+
+ 113   3                      keyReport[curkey == 0x02 ? 0 : index++] = curkey;
+ 114   3                  }
+ 115   2      
+ 116   2                  if (key4Pushed == true)
+ 117   2                  {
+ 118   3                      uint8_t curkey = keyMap[uid][4];
+ 119   3                      key4Pushed = 0;
+ 120   3      
+ 121   3                      keyReport[curkey == 0x02 ? 0 : index++] = curkey;
+ 122   3                  }
+ 123   2      
+ 124   2                  if(keyPushed)
+ 125   2                  {
+ 126   3                      keyReleased = 1;
+ 127   3                      USBD_Write(KEYBOARD_IN_EP_ADDR,
+ 128   3                                                       &keyReport,
+ 129   3                                                       sizeof(KeyReport_TypeDef),
+ 130   3                                                       false);
+ 131   3                  }
+ 132   2                  else if ((isIdleTimerIndefinite() == false) || (keyReleased == true))
+ 133   2                  {
+ 134   3                      keyReleased = 0;
+ 135   3                      USBD_Write(KEYBOARD_IN_EP_ADDR,
+ 136   3                                      &noKeyReport,
+ 137   3                                      sizeof(KeyReport_TypeDef),
+ 138   3                                      false);
+ 139   3                  }
+ 140   2          }
+ 141   1      }
+ 142          
+ 143          void USBD_DeviceStateChangeCb(USBD_State_TypeDef oldState,
+ 144                                        USBD_State_TypeDef newState)
+ 145          {
+ 146   1        bool numLockSave, capsLockSave;
+ 147   1      
+ 148   1        // If not configured or in suspend, disable the LED
+ 149   1        if (newState < USBD_STATE_SUSPENDED)
+ 150   1        {
+ 151   2          // Disable the LED
+ 152   2          numLockSave = 0;
+ 153   2          capsLockSave = 0;
+ 154   2          //numLock = 0;
+ 155   2          //capsLock = 0;
+ 156   2        }
+ 157   1        // Entering suspend mode, power internal and external blocks down
+ 158   1        else if (newState == USBD_STATE_SUSPENDED)
+ 159   1        {
+ 160   2          // Disable the LED's
+ 161   2          //numLockSave = numLock;
+ 162   2          //capsLockSave = capsLock;
+ 163   2          //numLock = 0;
+ 164   2          //capsLock = 0;
+ 165   2      
+ 166   2          // Abort any pending transfer
+ 167   2          USBD_AbortTransfer(KEYBOARD_IN_EP_ADDR);
+ 168   2        }
+ 169   1        else if (newState == USBD_STATE_CONFIGURED)
+ 170   1        {
+ 171   2          idleTimerSet(POLL_RATE);
+ 172   2        }
+ 173   1      
+ 174   1        // Exiting suspend mode, power internal and external blocks up
+ 175   1        if (oldState == USBD_STATE_SUSPENDED)
+C51 COMPILER V9.53.0.0   CALLBACK                                                          01/31/2016 22:03:14 PAGE 4   
+
+ 176   1        {
+ 177   2          // Restore the LED's to their previous values
+ 178   2          //numLock = numLockSave;
+ 179   2          //capsLock = capsLockSave;
+ 180   2        }
+ 181   1      }
+ 182          
+ 183          bool USBD_IsSelfPoweredCb(void)
+ 184          {
+ 185   1        return false;
+ 186   1      }
+ 187          
+ 188          USB_Status_TypeDef USBD_SetupCmdCb(SI_VARIABLE_SEGMENT_POINTER(
+ 191                                               setup,
+ 191                                               USB_Setup_TypeDef,
+ 191                                               MEM_MODEL_SEG))
+ 192          {
+ 193   1        USB_Status_TypeDef retVal = USB_STATUS_REQ_UNHANDLED;
+ 194   1      
+ 195   1        if ((setup->bmRequestType.Type == USB_SETUP_TYPE_STANDARD)
+ 196   1            && (setup->bmRequestType.Direction == USB_SETUP_DIR_IN)
+ 197   1            && (setup->bmRequestType.Recipient == USB_SETUP_RECIPIENT_INTERFACE))
+ 198   1        {
+ 199   2                      // A HID device must extend the standard GET_DESCRIPTOR command
+ 200   2                      // with support for HID descriptors.
+ 201   2          switch (setup->bRequest)
+ 202   2          {
+ 203   3            case GET_DESCRIPTOR:
+ 204   3              if ((setup->wValue >> 8) == USB_HID_REPORT_DESCRIPTOR)
+ 205   3              {
+ 206   4                switch (setup->wIndex)
+ 207   4                {
+ 208   5                  case 0: // Interface 0
+ 209   5                    USBD_Write(EP0, ReportDescriptor0,
+ 210   5                               EFM8_MIN(sizeof(ReportDescriptor0), setup->wLength),
+ 211   5                               false);
+ 212   5                    retVal = USB_STATUS_OK;
+ 213   5                    break;
+ 214   5      
+ 215   5                  default: // Unhandled Interface
+ 216   5                    break;
+ 217   5                }
+ 218   4              }
+ 219   3              else if ((setup->wValue >> 8) == USB_HID_DESCRIPTOR)
+ 220   3              {
+ 221   4                switch (setup->wIndex)
+ 222   4                {
+ 223   5                  case 0: // Interface 0
+ 224   5                    USBD_Write(EP0, (&configDesc[18]),
+ 225   5                               EFM8_MIN(USB_HID_DESCSIZE, setup->wLength),
+ 226   5                               false);
+ 227   5                    retVal = USB_STATUS_OK;
+ 228   5                    break;
+ 229   5      
+ 230   5                  default: // Unhandled Interface
+ 231   5                    break;
+ 232   5                }
+ 233   4              }
+ 234   3              break;
+ 235   3          }
+ 236   2              }
+ 237   1        else if ((setup->bmRequestType.Type == USB_SETUP_TYPE_CLASS)
+ 238   1                 && (setup->bmRequestType.Recipient == USB_SETUP_RECIPIENT_INTERFACE)
+C51 COMPILER V9.53.0.0   CALLBACK                                                          01/31/2016 22:03:14 PAGE 5   
+
+ 239   1                 && (setup->wIndex == HID_KEYBOARD_IFC))
+ 240   1        {
+ 241   2          // Implement the necessary HID class specific commands.
+ 242   2          switch (setup->bRequest)
+ 243   2          {
+ 244   3            case USB_HID_SET_REPORT:
+ 245   3              if (((setup->wValue >> 8) == 2)               // Output report
+ 246   3                  && ((setup->wValue & 0xFF) == 0)          // Report ID
+ 247   3                  && (setup->wLength == 1)                  // Report length
+ 248   3                  && (setup->bmRequestType.Direction != USB_SETUP_DIR_IN))
+ 249   3              {
+ 250   4                USBD_Read(EP0, &tmpBuffer, 1, true);
+ 251   4                retVal = USB_STATUS_OK;
+ 252   4              }
+ 253   3              break;
+ 254   3      
+ 255   3            case USB_HID_GET_REPORT:
+ 256   3              if (((setup->wValue >> 8) == 1)               // Input report
+ 257   3                  && ((setup->wValue & 0xFF) == 0)          // Report ID
+ 258   3                  && (setup->wLength == 8)                  // Report length
+ 259   3                  && (setup->bmRequestType.Direction == USB_SETUP_DIR_IN))
+ 260   3              {
+ 261   4                if (key1Pushed || key2Pushed || key3Pushed)
+ 262   4                {
+ 263   5                  // Send a key pushed report
+ 264   5                  USBD_Write(EP0,
+ 265   5                             &reportTable[keySeqNo],
+ 266   5                             sizeof(KeyReport_TypeDef),
+ 267   5                             false);
+ 268   5                }
+ 269   4                else
+ 270   4                {
+ 271   5                  // Send an empty (key released) report
+ 272   5                  USBD_Write(EP0,
+ 273   5                             &noKeyReport,
+ 274   5                             sizeof(KeyReport_TypeDef),
+ 275   5                             false);
+ 276   5                }
+ 277   4                retVal = USB_STATUS_OK;
+ 278   4              }
+ 279   3              break;
+ 280   3      
+ 281   3            case USB_HID_SET_IDLE:
+ 282   3              if (((setup->wValue & 0xFF) == 0)             // Report ID
+ 283   3                  && (setup->wLength == 0)
+ 284   3                  && (setup->bmRequestType.Direction != USB_SETUP_DIR_IN))
+ 285   3              {
+ 286   4                idleTimerSet(setup->wValue >> 8);
+ 287   4                retVal = USB_STATUS_OK;
+ 288   4              }
+ 289   3              break;
+ 290   3      
+ 291   3            case USB_HID_GET_IDLE:
+ 292   3              if ((setup->wValue == 0)                      // Report ID
+ 293   3                  && (setup->wLength == 1)
+ 294   3                  && (setup->bmRequestType.Direction == USB_SETUP_DIR_IN))
+ 295   3              {
+ 296   4                tmpBuffer = idleGetRate();
+ 297   4                USBD_Write(EP0, &tmpBuffer, 1, false);
+ 298   4                retVal = USB_STATUS_OK;
+ 299   4              }
+ 300   3              break;
+ 301   3          }
+C51 COMPILER V9.53.0.0   CALLBACK                                                          01/31/2016 22:03:14 PAGE 6   
+
+ 302   2        }
+ 303   1      
+ 304   1        return retVal;
+ 305   1      }
+ 306          
+ 307          uint16_t USBD_XferCompleteCb(uint8_t epAddr,
+ 308                                       USB_Status_TypeDef status,
+ 309                                       uint16_t xferred,
+ 310                                       uint16_t remaining)
+ 311          {
+ 312   1        UNREFERENCED_ARGUMENT(xferred);
+ 313   1        UNREFERENCED_ARGUMENT(remaining);
+ 314   1      
+ 315   1        if (status == USB_STATUS_OK)
+ 316   1        {
+ 317   2          // The only output reported supported is the SetReport to enable
+ 318   2          // Num Key and Caps Lock LED's.
+ 319   2          if (epAddr == EP0)
+ 320   2          {
+ 321   3            //numLock = ((bool) (tmpBuffer & 0x01));
+ 322   3            //capsLock = ((bool) (tmpBuffer & 0x02));
+ 323   3          }
+ 324   2        }
+ 325   1      
+ 326   1        return 0;
+ 327   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1006    ----
+   CONSTANT SIZE    =    135    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      1      27
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1       2
+   EDATA SIZE       =   ----    ----
+   HDATA SIZE       =   ----    ----
+   XDATA CONST SIZE =   ----    ----
+   FAR CONST SIZE   =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
